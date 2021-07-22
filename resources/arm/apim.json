@@ -3,12 +3,14 @@
     "contentVersion": "1.0.0.0",
     "parameters": {},
     "functions": [],
-    "variables": {},
+    "variables": {
+        "apimName": "apim-festdev"
+    },
     "resources": [
         {
             "type": "Microsoft.ApiManagement/service",
             "apiVersion": "2019-01-01",
-            "name": "apim-festdev",
+            "name": "[variables('apimName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
             ],
@@ -40,7 +42,11 @@
     "outputs": {
         "ApimResourceId": {
             "type": "string",
-            "value": "[resourceId('Microsoft.ApiManagement/service','apim-festdev')]"
+            "value": "[resourceId('Microsoft.ApiManagement/service', variables('apimName'))]"
+        },
+        "ApimManagedIdentity": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ApiManagement/service', variables('apimName')), '2019-01-01', 'Full').principalId]"
         }
     }
 }

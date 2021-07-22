@@ -1,0 +1,82 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "apimResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure resource id of APIM"
+            }
+        }
+    },
+    "functions": [
+        {
+            "namespace": "func",
+            "members": {
+                "retrieveApimName": {
+                    "parameters": [
+                        {
+                            "name": "apimId",
+                            "type": "string"
+                        }
+                    ],
+                    "output": {
+                        "value": "[last(split(parameters('apimId'), '/'))]",
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    ],
+    "variables": {
+        "apimName": "[func.retrieveApimName(parameters('apimResourceId'))]",
+        "apimApiName": "tofunction",
+        "apimOperationName": "testok"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ApiManagement/service/apis",
+            "apiVersion": "2021-01-01-preview",
+            "name": "[concat(variables('apimName'), '/', variables('apimApiName'))]",
+            "properties": {
+                "displayName": "[variables('apimApiName')]",
+                "apiRevision": "1",
+                "subscriptionRequired": true,
+                "path": "[variables('apimApiName')]",
+                "protocols": [
+                    "https"
+                ],
+                "isCurrent": true
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations",
+            "apiVersion": "2021-01-01-preview",
+            "name": "[concat(variables('apimName'), '/', variables('apimApiName'), '/', variables('apimOperationName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis', variables('apimName'), variables('apimApiName'))]"
+            ],
+            "properties": {
+                "displayName": "[variables('apimOperationName')]",
+                "method": "GET",
+                "urlTemplate": "[concat('/', variables('apimOperationName'))]",
+                "templateParameters": [],
+                "responses": []
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations/policies",
+            "apiVersion": "2021-01-01-preview",
+            "name": "[concat(variables('apimName'), '/', variables('apimApiName'), '/', variables('apimOperationName'), '/policy')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('apimName'), variables('apimApiName'), variables('apimOperationName'))]",
+                "[resourceId('Microsoft.ApiManagement/service/apis', variables('apimName'), variables('apimApiName'))]"
+            ],
+            "properties": {
+                "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <send-request mode=\"new\" response-variable-name=\"response\" timeout=\"30\" ignore-error=\"false\">\r\n      <set-url>https://festdevautofuncapp.azurewebsites.net/api/HttpTrigger1</set-url>\r\n      <set-method>GET</set-method>\r\n      <!-- \r\n                Client id of application registration (AD) created when authentication was enabled in function app\r\n                funcapp-ok-festdev.\r\n            -->\r\n      <!-- auto via portal\r\n            <authentication-managed-identity resource=\"62d09fa6-d4f7-4320-80d3-6ace1633f9fe\" />-->\r\n      <!-- manual via portal \r\n            <authentication-managed-identity resource=\"53cdc7b7-4676-4a92-a6bd-251aa67b8ce2\" />-->\r\n      <!-- func managed identity app id -->\r\n      <authentication-managed-identity resource=\"9c674895-bdea-478d-8751-5ea96fc65de3\" client-id=\"1c718666-37de-4a2f-8988-1f656a39812f\" />\r\n    </send-request>\r\n    <return-response response-variable-name=\"response\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                "format": "xml"
+            }
+        }
+    ],
+    "outputs": {}
+}
